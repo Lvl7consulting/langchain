@@ -154,6 +154,7 @@ class GraphCypherQAChain(Chain):
         cls,
         llm: Optional[BaseLanguageModel] = None,
         *,
+        query_graph: Optional[str] = None,
         qa_prompt: Optional[BasePromptTemplate] = None,
         cypher_prompt: Optional[BasePromptTemplate] = None,
         cypher_llm: Optional[BaseLanguageModel] = None,
@@ -211,15 +212,22 @@ class GraphCypherQAChain(Chain):
                 "can be provided, but not both"
             )
 
-        graph_schema = construct_schema(
-            kwargs["graph"].get_structured_schema, include_types, exclude_types
-        )
+        # LVL7 TODO: we should extend this file with a construct_schema
+        # for query schema instead of pasing it as parameter
+        if query_graph:
+            graph_structured_schema = query_graph.get_structured_schema
+            graph_schema = query_graph.get_schema
+        else:
+            graph_structured_schema = kwargs["graph"].get_structured_schema
+            graph_schema = construct_schema(
+                graph_structured_schema, include_types, exclude_types
+            )
 
         cypher_query_corrector = None
         if validate_cypher:
             corrector_schema = [
                 Schema(el["start"], el["type"], el["end"])
-                for el in kwargs["graph"].structured_schema.get("relationships")
+                for el in graph_structured_schema.get("relationships")
             ]
             cypher_query_corrector = CypherQueryCorrector(corrector_schema)
 
